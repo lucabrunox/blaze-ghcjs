@@ -48,7 +48,7 @@ renderMarkup doc = go
       mapM_ (\x -> setAttribute x (fromChoiceString key "") (fromChoiceString value "")) elems
       return nl
     go (Content content) = do
-      mn <- createElement doc $ Just $ fromChoiceString content ""
+      mn <- createTextNode doc $ fromChoiceString content ""
       case mn of
         Just n -> unsafeCastTo Node n >>= (\f -> return [f])
         Nothing -> return []
