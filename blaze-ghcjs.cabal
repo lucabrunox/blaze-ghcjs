@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                blaze-ghcjs
-version:             0.1.0.0
+version:             0.2.0.0
 synopsis:            Blaze-html renderer backend using ghcjs-dom
 -- description:
 homepage:            https://github.com/lethalman/blaze-ghcjs
