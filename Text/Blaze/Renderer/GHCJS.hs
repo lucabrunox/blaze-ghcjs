@@ -12,42 +12,45 @@ import Control.Applicative
 import Text.Blaze.Internal
 import Text.Blaze.Renderer.String (fromChoiceString)
 
-renderMarkup :: IsDocument doc => doc   -- ^ Document to create nodes with
-             -> Markup    -- ^ Markup to render
-             -> IO [Node]  -- ^ Resulting list of GHCJS DOM nodes
+renderMarkup :: IsDocument doc
+             => doc         -- ^ Document to create nodes with
+             -> Markup      -- ^ Markup to render
+             -> IO [Node]   -- ^ Resulting list of GHCJS DOM nodes
 renderMarkup doc = go
   where
     withNewElement :: String -> (Node -> IO [Node]) -> IO [Node]
     withNewElement name f = do
-      mn <- documentCreateElement doc name
+      mn <- createElement doc (Just name)
       case mn of
-        Just n -> f (castToNode n)
+        Just n -> unsafeCastTo Node n >>= f
         Nothing -> return []
     go :: MarkupM b -> IO [Node]
     go (Parent tag _ _ content) =
       withNewElement (getString tag "") $ \n -> do
         nl <- go content
-        mapM_ (nodeAppendChild n . Just) nl
+        mapM_ (appendChild n . Just) nl
         return [n]
     go (CustomParent tag content) = do
       withNewElement (fromChoiceString tag "") $ \n -> do
         nl <- go content
-        mapM_ (nodeAppendChild n . Just) nl
+        mapM_ (appendChild n . Just) nl
         return [n]
     go (Leaf tag _ _) = withNewElement (getString tag "") (return . pure)
     go (CustomLeaf tag _) = withNewElement (fromChoiceString tag "") (return . pure)
     go (AddAttribute key _ value h) = do
       nl <- go h
-      mapM_ (\x -> elementSetAttribute (castToElement x) (getString key "") (fromChoiceString value "")) nl
+      elems <- traverse (unsafeCastTo Element) nl
+      mapM_ (\x -> setAttribute (toElement x) (getString key "") (fromChoiceString value "")) elems
       return nl
     go (AddCustomAttribute key value h) = do
       nl <- go h
-      mapM_ (\x -> elementSetAttribute (castToElement x) (fromChoiceString key "") (fromChoiceString value "")) nl
+      elems <- traverse (unsafeCastTo Element) nl
+      mapM_ (\x -> setAttribute x (fromChoiceString key "") (fromChoiceString value "")) elems
       return nl
     go (Content content) = do
-      mn <- documentCreateTextNode doc $ fromChoiceString content ""
-      case mn of 
-        Just n -> return [castToNode n]
+      mn <- createTextNode doc $ fromChoiceString content ""
+      case mn of
+        Just n -> unsafeCastTo Node n >>= (\f -> return [f])
         Nothing -> return []
     go (Append h1 h2) = (++) <$> go h1 <*> go h2
     go Empty = return []
